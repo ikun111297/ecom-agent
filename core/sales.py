@@ -8,8 +8,12 @@ def new_history():
     return [{"role": "system", "content": SALES_PROMPT.format(context="")}]
 
 
-def ask(question, history):
-    """先检索，再带着检索结果回答"""
+def ask(question, history, user_id=None):
+    """先检索，再带着检索结果回答。
+
+    user_id 在售前用不到（不涉及订单归属），保留它只为和售后模块保持同样的签名，
+    这样渠道层可以统一调用 module.ask(question, history, user_id)，不用分支判断。
+    """
     # 用最新问题重写 system 提示词，把检索到的资料填进去
     history[0] = {
         "role": "system",

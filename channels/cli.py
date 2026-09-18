@@ -1,4 +1,6 @@
 """命令行渠道：只负责跟用户打交道，不含任何业务逻辑"""
+import os
+
 from core import aftersales, sales
 
 MODULES = {
@@ -6,10 +8,15 @@ MODULES = {
     "2": ("售后服务", aftersales),
 }
 
+# 演示用身份。真实系统里它来自登录态；命令行没有登录，所以用环境变量指定
+# （默认 U1001 —— orders.csv 里属于该用户的演示订单）。
+DEMO_USER_ID = os.getenv("DEMO_USER_ID", "U1001")
+
 
 def chat_loop(name, module):
     """一轮对话。返回 True 表示用户要退出程序"""
     print(f"\n--- {name}（返回：回主菜单 | 退出：结束程序）---")
+    print(f"（当前身份：{DEMO_USER_ID}，改身份请设置环境变量 DEMO_USER_ID）")
     history = module.new_history()
 
     while True:
@@ -24,7 +31,7 @@ def chat_loop(name, module):
             history = module.new_history()
             print("（已开启新会话）")
             continue
-        print("\n客服：" + module.ask(q, history))
+        print("\n客服：" + module.ask(q, history, DEMO_USER_ID))
 
 
 def main():

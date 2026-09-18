@@ -13,6 +13,8 @@
 恰恰教模型说"需要帮您确认一下"，于是不管回答得对不对都会被判通过。现在统一交给
 裁判模型判断"是否诚实"，并且额外检查检索层有没有真的拦住。
 """
+import re
+
 from core import aftersales, sales
 from core.llm import chat
 from core.retriever import NO_HIT, build_context
@@ -96,7 +98,9 @@ def judge(prompt):
     """
     resp = chat([{"role": "user", "content": prompt}], temperature=0)
     text = resp.choices[0].message.content.strip()
-    if "不通过" in text:
+    # 否定形式必须先排除，而且不能只挡「不通过」——「未通过」「没通过」
+    # 同样包含「通过」子串，漏掉任何一个都会重新变成"裁判永远判通过"
+    if re.search(r"[不未没]通过", text):
         return False
     if "通过" in text:
         return True

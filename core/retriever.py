@@ -90,7 +90,13 @@ _CACHE = {
 
 
 def _knowledge_mtime():
-    return max((f.stat().st_mtime for f in KNOWLEDGE_DIR.glob("*.md")), default=0.0)
+    """索引新鲜度指纹：文件数 + 最大修改时间。
+
+    只取 max 不够 —— 删掉一个"不是最新"的 md 文件时 max 不变，
+    缓存不重建，被删掉的内容会继续参与检索。
+    """
+    files = list(KNOWLEDGE_DIR.glob("*.md"))
+    return (len(files), max((f.stat().st_mtime for f in files), default=0.0))
 
 
 def _extract_entities(chunks):

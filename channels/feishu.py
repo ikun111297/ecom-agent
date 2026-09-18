@@ -72,6 +72,17 @@ def _seen(message_id):
     return False
 
 
+def _role(msg):
+    """统一取消息的 role。
+
+    history 里混着两种东西：渠道层 append 的 dict，以及 aftersales.ask() 里
+    history.append(msg) 塞进来的 SDK 消息对象。SDK 对象没有 .get()，
+    直接调会抛 AttributeError —— 而且因为切割点随长度左右浮动，
+    表现为"偶数长度必崩、奇数长度正常"的间歇性故障，极难复现。
+    """
+    return msg.get("role") if isinstance(msg, dict) else getattr(msg, "role", None)
+
+
 def _trim(history):
     """只留 system 提示词 + 最近若干条消息，避免上下文无限增长。
 
@@ -84,7 +95,7 @@ def _trim(history):
     if len(history) <= MAX_HISTORY_MESSAGES + 1:
         return
     cut = len(history) - MAX_HISTORY_MESSAGES
-    while cut > 1 and history[cut].get("role") != "user":
+    while cut > 1 and _role(history[cut]) != "user":
         cut -= 1
     if cut > 1:
         del history[1:cut]

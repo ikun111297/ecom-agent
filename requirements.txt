@@ -1,0 +1,5 @@
+openai>=1.30
+python-dotenv>=1.0
+jieba>=0.42
+rank-bm25>=0.2
+lark-oapi>=1.4

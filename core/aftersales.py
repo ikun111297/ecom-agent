@@ -35,15 +35,11 @@ def new_history():
 
 def ask(question, history):
     """带上下文回答售后问题，模型需要数据时自动调用工具"""
+    # 每轮用最新问题重新检索，把知识库资料填进 system 提示词
     history[0] = {
         "role": "system",
         "content": AFTERSALES_PROMPT.format(context=build_context(question)),
     }
-
-    history.append({"role": "user", "content": question})
-
-def ask(question, history):
-    """带上下文回答售后问题，模型需要数据时自动调用工具"""
     history.append({"role": "user", "content": question})
 
     while True:

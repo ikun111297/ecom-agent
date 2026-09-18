@@ -37,8 +37,10 @@ _USER_LOCKS_LOCK = threading.Lock()
 SEEN = OrderedDict()
 SEEN_LIMIT = 2000
 
-# 每个会话最多保留多少轮历史（不含 system 提示词）。不截断的话长对话会撑爆上下文。
-MAX_HISTORY_TURNS = 12
+# 每个会话最多保留多少条历史消息（不含 system 提示词）。不截断的话长对话会撑爆上下文。
+# 名字里强调 MESSAGES：一轮对话可能产生多条消息（工具调用会额外产生 assistant+tool），
+# 按"轮数"理解会算错，裁剪也就不安全了。
+MAX_HISTORY_MESSAGES = 12
 
 # 回复要等大模型，耗时数秒。放进线程池，避免一个用户提问把所有其他用户堵住。
 _EXECUTOR = ThreadPoolExecutor(max_workers=4)
@@ -71,9 +73,21 @@ def _seen(message_id):
 
 
 def _trim(history):
-    """只留 system 提示词 + 最近若干轮，避免上下文无限增长"""
-    if len(history) > MAX_HISTORY_TURNS + 1:
-        del history[1:-MAX_HISTORY_TURNS]
+    """只留 system 提示词 + 最近若干条消息，避免上下文无限增长。
+
+    ⚠️ 不能按条数硬切：assistant(tool_calls) 和紧随其后的 tool 消息是一对，
+    从中间切开的话 API 会直接 400 拒绝（实测报错：
+    "Messages with role 'tool' must be a response to a preceding message
+    with 'tool_calls'"）。所以把切割点往前退到一条 user 消息上 —— 那是
+    一轮对话的起点，从那里切开永远是完整轮次。
+    """
+    if len(history) <= MAX_HISTORY_MESSAGES + 1:
+        return
+    cut = len(history) - MAX_HISTORY_MESSAGES
+    while cut > 1 and history[cut].get("role") != "user":
+        cut -= 1
+    if cut > 1:
+        del history[1:cut]
 
 
 def reply_text(open_id, text):

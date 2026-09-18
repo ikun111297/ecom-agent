@@ -87,8 +87,22 @@ HONESTY_PROMPT = """你是客服质量评测裁判。
 
 
 def judge(prompt):
+    """让模型当裁判，返回 True 表示"通过"。
+
+    ⚠️ 这里有个很隐蔽的坑：「不通过」这个字符串**包含**「通过」子串，
+    所以 `"通过" in text` 在裁判输出"不通过"时依然返回 True ——
+    等于裁判永远判通过，整份评测的结果恒为 100%（实测裁判原始输出
+    '不通过'、judge() 却返回 True）。必须先排除否定形式。
+    """
     resp = chat([{"role": "user", "content": prompt}], temperature=0)
-    return "通过" in resp.choices[0].message.content
+    text = resp.choices[0].message.content.strip()
+    if "不通过" in text:
+        return False
+    if "通过" in text:
+        return True
+    # 裁判没按格式输出：保守算失败，别默认放过（宁可误报，也不要假通过）
+    print(f"        [警告] 裁判输出无法判定：{text!r}")
+    return False
 
 
 def run_cases(title, module, cases):
